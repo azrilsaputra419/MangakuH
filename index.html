@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Library</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f7f7f7;
+            padding-top: 30px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #ff5e62, #ff9966);
+            padding: 15px;
+            color: white;
+            font-size: 22px;
+            font-weight: 600;
+            border-bottom: 3px solid #ff5e62;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .search-container {
+            margin: 15px auto;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ff5e62;
+            border-radius: 15px;
+            font-size: 14px;
+            text-align: center;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .comic-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 20px;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .comic-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .comic-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .comic-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 2px solid #ff5e62;
+        }
+
+        .comic-card h3 {
+            font-size: 14px;
+            margin: 10px;
+            color: #ff5e62;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .pagination button {
+            background: #ff5e62;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .pagination button:disabled {
+            background: #ddd;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            font-size: 14px;
+            margin: 0 10px;
+            color: #ff5e62;
+        }
+
+        @media (min-width: 768px) {
+            .comic-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .comic-container {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        📚 Manga Library
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Cari komik...">
+        <input type="text" id="artistInput" class="search-input" placeholder="Cari berdasarkan artist...">
+    </div>
+
+    <div class="comic-container" id="comicList"></div>
+
+    <div class="pagination">
+        <button id="prevBtn">⬅ Sebelumnya</button>
+        <span id="pageNumber">1</span>
+        <button id="nextBtn">Berikutnya ➡</button>
+    </div>
+
+    <script>
+        const comics = [
+            { title: "Tanemura Kurumi wa Kyou mo Kawai", artist: "Tsugumi Suzuma", cover: "https://lh3.googleusercontent.com/d/120KRW1Vfb7wuPNpde8HhrEXrGg1blO__=w1000", id: 1 },
+            { title: "Koyori Report", artist: "Shimanto Shisakugata", cover: "https://lh3.googleusercontent.com/d/12M6T4eKtkXXVqdEtJdO9XMB4QJZ5sBde=w1000", id: 2 },
+            { title: "Stand By Me", artist: "Syamonabe", cover: "https://lh3.googleusercontent.com/d/14gGhFiY_C6Fpe4eYIgWHFJ3spxv1TSGf=w1000", id: 3 },
+            { title: "Ochiai", artist: "Daiji", cover: "https://lh3.googleusercontent.com/d/15fY-8STxwxxNeyiudXF4VJwBFDl0A7my=w1000", id: 4 },
+            { title: "Kopurekkusu", artist: "G-Wara", cover: "https://lh3.googleusercontent.com/d/14Kn2V_7k3oKI7eyNcUHPxi8yEj5qSdPs=w1000", id: 5 },
+            { title: "Kawaii kara", artist: "Hiramaru Akira", cover: "https://lh3.googleusercontent.com/d/14QNt8PU2r_k_22aAOLesQB3rCLyD3Mey=w1000", id: 6 },
+            { title: "Hikaeme Request", artist: "Takota Konu", cover: "https://lh3.googleusercontent.com/d/16INHAFaa6leDi8bNjf6UZROibxpaTUvo=w1000", id: 7 }
+        ];
+
+        let currentPage = 1;
+        const itemsPerPage = 6;
+        let filteredComics = [...comics];
+
+        const comicList = document.getElementById('comicList');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const pageNumber = document.getElementById('pageNumber');
+        const searchInput = document.getElementById('searchInput');
+        const artistInput = document.getElementById('artistInput');
+
+        function loadComics() {
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedComics = filteredComics.slice(start, end);
+            
+            comicList.innerHTML = paginatedComics
+                .map(comic => `
+                    <div class="comic-card" onclick="location.href='detail.html?id=${comic.id}'">
+                        <img src="${comic.cover}" alt="${comic.title}">
+                        <h3>${comic.title}</h3>
+                    </div>
+                `).join('');
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredComics.length / itemsPerPage);
+            pageNumber.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            loadComics();
+            updatePagination();
+        }
+
+        function filterComics(type) {
+            const searchTerm = type === 'title' 
+                ? searchInput.value.toLowerCase()
+                : artistInput.value.toLowerCase();
+            
+            filteredComics = comics.filter(comic => 
+                comic[type === 'title' ? 'title' : 'artist'].toLowerCase().includes(searchTerm)
+            );
+            
+            currentPage = 1;
+            loadComics();
+            updatePagination();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComics();
+            updatePagination();
+        });
+        searchInput.addEventListener('input', () => filterComics('title'));
+        artistInput.addEventListener('input', () => filterComics('artist'));
+        prevBtn.addEventListener('click', () => changePage(-1));
+        nextBtn.addEventListener('click', () => changePage(1));
+    </script>
+</body>
+</html>
